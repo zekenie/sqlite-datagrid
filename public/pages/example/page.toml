@@ -1,0 +1,13 @@
+title = "Daily asdfas"
+description = """
+This is a markdonw description. [link](https://something.com)
+Violets are blue"""
+showInCommandPalette = true
+
+[[tabs]]
+title = "first"
+url = "query-one.sql"
+
+[[tabs]]
+title = "artists"
+url = "all-artists.sql"

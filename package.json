@@ -16,6 +16,7 @@
     "@radix-ui/react-context-menu": "^2.1.5",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-menubar": "^1.0.4",
+    "@radix-ui/react-tabs": "^1.0.4",
     "@types/lodash-es": "^4.17.12",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
@@ -23,18 +24,19 @@
     "gray-matter": "^4.0.3",
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.323.0",
+    "marked": "^4.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-responsive-carousel": "^3.2.23",
     "react-router-dom": "^6.22.0",
     "sql.js": "^1.10.2",
     "tailwind-merge": "^2.2.1",
-    "tailwindcss-animate": "^1.0.7"
-  },
-  "resolutions": {
-    "marked": "^12.0.0"
+    "tailwindcss-animate": "^1.0.7",
+    "toml": "^3.0.0"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.10",
+    "@types/marked": "^4.3.2",
     "@types/node": "^20.11.17",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",

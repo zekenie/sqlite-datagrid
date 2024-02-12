@@ -16,7 +16,7 @@ import {
 
 export function TopMenu() {
   return (
-    <Menubar className="bg-slate-100">
+    <Menubar className="shadow-sm rounded-none">
       <MenubarMenu>
         <MenubarTrigger>File</MenubarTrigger>
         <MenubarContent>

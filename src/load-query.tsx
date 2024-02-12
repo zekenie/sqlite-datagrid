@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import matter from "gray-matter";
+import { memoizedTextResourceFetcher } from "./memoizedResourceFetcher";
+import { TabProps } from "./components/Tab";
+import toml from "toml";
 
-type QueryFrontMatter = Record<string, string>;
+type QueryFrontMatter = TabProps;
 
 export function useAjaxQuery(url: string) {
   const [query, setQuery] = useState<{
@@ -10,14 +13,19 @@ export function useAjaxQuery(url: string) {
   }>({});
 
   const fetchSQL = useCallback(async (url: string) => {
-    const res = await fetch(url);
-    return res.text();
+    return memoizedTextResourceFetcher(url);
   }, []);
 
   const main = useCallback(async () => {
     const rawQuery = await fetchSQL(url);
-    const { content, data } = matter(rawQuery);
-    setQuery({ query: content, frontMatter: data });
+    const matterRes = matter(rawQuery, {
+      engines: {
+        toml: toml.parse.bind(toml),
+      },
+    });
+    const { content, data } = matterRes;
+    console.log(matterRes);
+    setQuery({ query: content, frontMatter: data as QueryFrontMatter });
   }, [fetchSQL, url]);
 
   useEffect(() => {
