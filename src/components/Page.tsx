@@ -3,7 +3,9 @@ import {
   memoizedTextResourceFetcher,
   preloadResource,
 } from "@/memoizedResourceFetcher";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { useResizeObserver } from "usehooks-ts";
+
 import {
   LoaderFunction,
   useLoaderData,
@@ -26,6 +28,11 @@ export type PageProps = {
   showInCommandPalette?: boolean;
 };
 
+type Size = {
+  width?: number;
+  height?: number;
+};
+
 export const loader: LoaderFunction = async ({ params }) => {
   const pageToml = await memoizedTextResourceFetcher(
     `/pages/${params.page!}/page.toml`
@@ -37,15 +44,26 @@ export default function Page() {
   const navigate = useNavigate();
   const { title, defaultTabUrl, description, tabs } =
     useLoaderData() as PageProps;
-  const { page, tab } = useParams<{ page: string; tab: string }>();
+  const { page, tab: tabString } = useParams<{ page: string; tab: string }>();
 
-  const { frontMatter, query } = useAjaxQuery(`/pages/${page}/tabs/${tab}`);
+  const { frontMatter, query } = useAjaxQuery(
+    `/pages/${page}/tabs/${tabString}`
+  );
   console.log(frontMatter);
   const preload = useCallback(async () => {
     tabs
       .filter((t) => t.url !== defaultTabUrl)
       .forEach((tab) => preloadResource(`/pages/${page}/tabs/${tab.url}`));
   }, [defaultTabUrl, page, tabs]);
+
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  const { height: headerHeight = 0 } = useResizeObserver({
+    ref: headerRef,
+    box: "border-box",
+  });
+
+  const tableHeight = `calc(100vh - ${headerHeight}px - 100px)`;
 
   useEffect(() => {
     preload();
@@ -54,9 +72,9 @@ export default function Page() {
   return (
     <>
       <CommandPalette />
-      <div className="flex-grow flex flex-col overflow-hidden bg-slate-100">
+      <div className="flex-grow flex flex-col bg-slate-100">
         <TopMenu />
-        <div className="py-4 px-3 space-y-2">
+        <div ref={headerRef} className="py-4 px-3 space-y-2">
           <TypographyH2>{title}</TypographyH2>
           {description && (
             <TypographyMuted>
@@ -67,7 +85,10 @@ export default function Page() {
             </TypographyMuted>
           )}
         </div>
-        <Tabs value={tab} onValueChange={(t) => navigate(`/${page}/tabs/${t}`)}>
+        <Tabs
+          value={tabString}
+          onValueChange={(t) => navigate(`/${page}/tabs/${t}`)}
+        >
           <TabsList className="mx-3">
             {tabs.map((tab) => (
               <TabsTrigger key={tab.url} value={tab.url}>
@@ -75,13 +96,20 @@ export default function Page() {
               </TabsTrigger>
             ))}
           </TabsList>
-          {tabs.map((tab) => (
-            <TabsContent key={tab.url} value={tab.url}>
-              {frontMatter && query && (
-                <SqlTable query={query} {...frontMatter} />
-              )}
-            </TabsContent>
-          ))}
+          {tabs.map(
+            (tab) =>
+              tab.url === tabString && (
+                <TabsContent key={tab.url} value={tab.url}>
+                  {frontMatter && query && (
+                    <SqlTable
+                      height={tableHeight}
+                      query={query}
+                      {...frontMatter}
+                    />
+                  )}
+                </TabsContent>
+              )
+          )}
         </Tabs>
       </div>
     </>

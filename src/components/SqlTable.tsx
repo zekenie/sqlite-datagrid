@@ -20,10 +20,12 @@ export type SqlTableOptions = {
 function SqlTable({
   query,
   freezeColumns,
+  height,
   rightElement,
   dbUrl,
 }: {
   query: string;
+  height: string;
 } & SqlTableOptions) {
   const { db } = useDb(dbUrl);
   const { columns: dbColumns, values } = useMemo(() => {
@@ -76,10 +78,10 @@ function SqlTable({
   }, []);
 
   return (
-    <div className="px-3 ">
+    <div className="px-3">
       <DataEditor
         getCellContent={getCellContent}
-        height="80vh"
+        height={height}
         width="100%"
         className="border rounded"
         columns={columns}
