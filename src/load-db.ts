@@ -30,7 +30,7 @@ export const dbContext = createContext<Context>({
   async load() {},
 });
 
-export function useDb(url: string) {
+export function useDb(url?: string) {
   const [db, setDb] = useState<Database | undefined>();
   const { load, dbs } = useContext(dbContext);
   useEffect(() => {
@@ -40,7 +40,9 @@ export function useDb(url: string) {
   }, [load, url]);
 
   useEffect(() => {
-    dbs[url]?.then(setDb);
+    if (url) {
+      dbs[url]?.then(setDb);
+    }
   }, [dbs, url]);
 
   return { db };

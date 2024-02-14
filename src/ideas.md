@@ -2,3 +2,4 @@
 * query parameterization query params in the url
 * letting people modify the query. they have the whole db. maybe it's a starting point
 * command palette
+* tabs could have frontmatter that specifies a markdown file or a vega lite file

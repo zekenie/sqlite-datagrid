@@ -8,4 +8,3 @@ dbUrl = "/db.sqlite"
 
 select * from Invoice
 join  Customer on Customer.CustomerId = Invoice.CustomerId
---where BillingCountry = $billingCountry

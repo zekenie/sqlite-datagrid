@@ -1,10 +1,9 @@
 import { useAjaxQuery } from "@/load-query";
-import {
-  memoizedTextResourceFetcher,
-  preloadResource,
-} from "@/memoizedResourceFetcher";
-import { useCallback, useEffect, useRef } from "react";
+import { memoizedTextResourceFetcher } from "@/memoizedResourceFetcher";
+import { useCallback, useRef, useState } from "react";
 import { useResizeObserver } from "usehooks-ts";
+import { QueryBuilder, RuleGroupType, formatQuery } from "react-querybuilder";
+import "react-querybuilder/dist/query-builder.css";
 
 import {
   LoaderFunction,
@@ -13,12 +12,13 @@ import {
   useParams,
 } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import SqlTable from "./SqlTable";
+import SqlTable, { useSqlTable } from "./SqlTable";
 import toml from "toml";
 import { CommandPalette } from "./CommandPalette";
 import { TopMenu } from "./TopMenu";
 import { TypographyH2, TypographyMuted } from "./Typography";
 import { marked } from "marked";
+import { Button } from "./ui/button";
 
 export type PageProps = {
   title: string;
@@ -28,34 +28,7 @@ export type PageProps = {
   showInCommandPalette?: boolean;
 };
 
-type Size = {
-  width?: number;
-  height?: number;
-};
-
-export const loader: LoaderFunction = async ({ params }) => {
-  const pageToml = await memoizedTextResourceFetcher(
-    `/pages/${params.page!}/page.toml`
-  );
-  return toml.parse(pageToml);
-};
-
-export default function Page() {
-  const navigate = useNavigate();
-  const { title, defaultTabUrl, description, tabs } =
-    useLoaderData() as PageProps;
-  const { page, tab: tabString } = useParams<{ page: string; tab: string }>();
-
-  const { frontMatter, query } = useAjaxQuery(
-    `/pages/${page}/tabs/${tabString}`
-  );
-  console.log(frontMatter);
-  const preload = useCallback(async () => {
-    tabs
-      .filter((t) => t.url !== defaultTabUrl)
-      .forEach((tab) => preloadResource(`/pages/${page}/tabs/${tab.url}`));
-  }, [defaultTabUrl, page, tabs]);
-
+function useTableHeight() {
   const headerRef = useRef<HTMLDivElement>(null);
 
   const { height: headerHeight = 0 } = useResizeObserver({
@@ -65,16 +38,53 @@ export default function Page() {
 
   const tableHeight = `calc(100vh - ${headerHeight}px - 100px)`;
 
-  useEffect(() => {
-    preload();
-  }, [preload]);
+  return { headerRef, tableHeight };
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const loader: LoaderFunction = async ({ params }) => {
+  const pageToml = await memoizedTextResourceFetcher(
+    `/pages/${params.page!}/page.toml`
+  );
+  return toml.parse(pageToml);
+};
+
+const initialWhereClause: RuleGroupType = { combinator: "and", rules: [] };
+
+export default function Page() {
+  const navigate = useNavigate();
+  const { title, description, tabs } = useLoaderData() as PageProps;
+  const { page, tab: tabString } = useParams<{ page: string; tab: string }>();
+
+  const { frontMatter, query } = useAjaxQuery(
+    `/pages/${page}/tabs/${tabString}`
+  );
+
+  const { headerRef, tableHeight } = useTableHeight();
+  const [whereClause, setWhereClauseQuery] =
+    useState<RuleGroupType>(initialWhereClause);
+
+  const [whereClauseString, setWhereClauseString] = useState<
+    string | undefined
+  >();
+
+  const applyWhereClause = useCallback(() => {
+    setWhereClauseString(formatQuery(whereClause, "sql"));
+  }, [whereClause]);
+
+  console.log({ whereClause, sql: formatQuery(whereClause, "sql") });
+  const { columns, selections, setSelections, values } = useSqlTable({
+    dbUrl: frontMatter?.dbUrl,
+    query,
+    where: whereClauseString,
+  });
 
   return (
     <>
       <CommandPalette />
-      <div className="flex-grow flex flex-col bg-slate-100">
+      <div className="flex-grow flex-col bg-slate-100">
         <TopMenu />
-        <div ref={headerRef} className="py-4 px-3 space-y-2">
+        <div ref={headerRef} className="py-4 px-3 space-y-2 flex flex-col">
           <TypographyH2>{title}</TypographyH2>
           {description && (
             <TypographyMuted>
@@ -84,6 +94,25 @@ export default function Page() {
               ></span>
             </TypographyMuted>
           )}
+          <div className="w-full relative">
+            <QueryBuilder
+              query={whereClause}
+              onQueryChange={(q) => setWhereClauseQuery(q)}
+              controlClassnames={{ queryBuilder: "queryBuilder-branches" }}
+              fields={columns.map((c) => ({
+                label: c.title,
+                name: c.title,
+              }))}
+            />
+            <Button
+              className="absolute top-1 right-1"
+              onClick={applyWhereClause}
+              size={"sm"}
+              variant={"default"}
+            >
+              Apply Filter
+            </Button>
+          </div>
         </div>
         <Tabs
           value={tabString}
@@ -104,7 +133,11 @@ export default function Page() {
                     <SqlTable
                       height={tableHeight}
                       query={query}
-                      {...frontMatter}
+                      columns={columns}
+                      selections={selections}
+                      setSelections={setSelections}
+                      values={values}
+                      // {...frontMatter}
                     />
                   )}
                 </TabsContent>

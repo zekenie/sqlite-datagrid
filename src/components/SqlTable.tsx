@@ -9,32 +9,34 @@ import {
 } from "@glideapps/glide-data-grid";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import "@glideapps/glide-data-grid/dist/index.css";
+import { SqlValue } from "sql.js";
 
 export type SqlTableOptions = {
   rightElement?: ReactNode;
   freezeColumns?: number;
   defaultParams?: Record<string, string>;
-  dbUrl: string;
 };
 
-function SqlTable({
-  query,
-  freezeColumns,
-  height,
-  rightElement,
+export function useSqlTable({
   dbUrl,
+  query,
+  where,
 }: {
-  query: string;
-  height: string;
-} & SqlTableOptions) {
+  dbUrl?: string;
+  query?: string;
+  where?: string;
+}) {
+  if (where) {
+    query += `\nwhere ${where}`;
+  }
   const { db } = useDb(dbUrl);
   const { columns: dbColumns, values } = useMemo(() => {
-    if (!db) {
+    if (!db || !query) {
       return { columns: [], values: [] };
     }
-    const [{ columns, values }] = db.exec(query, {
-      // $billingCountry: "Germany",
-    });
+    const dbRes = db.exec(query, {});
+    console.log(dbRes);
+    const [{ columns, values }] = dbRes;
     return { columns, values };
   }, [query, db]);
 
@@ -45,13 +47,38 @@ function SqlTable({
     [dbColumns]
   );
 
+  return {
+    selections,
+    setSelections,
+    columns,
+    values,
+  };
+}
+
+function SqlTable({
+  freezeColumns,
+  values,
+  height,
+  columns,
+  setSelections,
+  selections,
+  rightElement,
+}: {
+  query: string;
+  values: SqlValue[][];
+  columns: GridColumn[];
+  selections?: GridSelection;
+  setSelections: React.Dispatch<
+    React.SetStateAction<GridSelection | undefined>
+  >;
+  height: string;
+} & SqlTableOptions) {
+  const [showSearch, setShowSearch] = useState(false);
+
   const getCellContent = useCallback(
     (cell: Item): GridCell => {
       const [col, row] = cell;
       const value = String(values[row][col]) as string;
-      // dumb but simple way to do this
-
-      // const d = dataRow[dbColumns[col]];
       return {
         kind: GridCellKind.Text,
         allowOverlay: false,
@@ -61,8 +88,6 @@ function SqlTable({
     },
     [values]
   );
-
-  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
